@@ -1,6 +1,8 @@
+import '../config/app_config.dart';
+
 class ApiEndpoints {
-  // Android Emulator → FastAPI running on Windows
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  // Configured via AppConfig (--dart-define=API_BASE_URL=...)
+  static const String baseUrl = AppConfig.apiBaseUrl;
 
   // Authentication
   static const String register = '$baseUrl/auth/register';
@@ -18,12 +20,9 @@ class ApiEndpoints {
   // Assistance Requests
   static const String assistance = '$baseUrl/assistance/';
 
-  static String acceptRequest(int id) =>
-      '$baseUrl/assistance/$id/accept';
+  static String acceptRequest(int id) => '$baseUrl/assistance/$id/accept';
 
-  static String startRequest(int id) =>
-      '$baseUrl/assistance/$id/start';
+  static String startRequest(int id) => '$baseUrl/assistance/$id/start';
 
-  static String completeRequest(int id) =>
-      '$baseUrl/assistance/$id/complete';
+  static String completeRequest(int id) => '$baseUrl/assistance/$id/complete';
 }

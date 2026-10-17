@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
+import '../auth/login_screen.dart';
 import 'ai_diagnosis_screen.dart';
 import 'mechanic_match_screen.dart';
 import 'request_tracking_screen.dart';
@@ -46,18 +47,12 @@ class _DriverDashboardState extends State<DriverDashboard> {
               children: [
                 const Text(
                   'Current GPS coordinates:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Latitude: ${position.latitude.toStringAsFixed(6)}',
-                ),
+                Text('Latitude: ${position.latitude.toStringAsFixed(6)}'),
                 const SizedBox(height: 6),
-                Text(
-                  'Longitude: ${position.longitude.toStringAsFixed(6)}',
-                ),
+                Text('Longitude: ${position.longitude.toStringAsFixed(6)}'),
                 const SizedBox(height: 12),
                 Text(
                   'Accuracy: ${position.accuracy.toStringAsFixed(1)} meters',
@@ -81,12 +76,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
-          ),
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -100,12 +90,32 @@ class _DriverDashboardState extends State<DriverDashboard> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true || !context.mounted) return;
+
     await context.read<AuthProvider>().logout();
 
     if (!context.mounted) return;
 
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/',
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
   }
@@ -115,16 +125,13 @@ class _DriverDashboardState extends State<DriverDashboard> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
 
-    final firstName =
-        user?.fullName.split(' ').first ?? 'Driver';
+    final firstName = user?.fullName.split(' ').first ?? 'Driver';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Vehicle Assistance',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
@@ -137,9 +144,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            await Future<void>.delayed(
-              const Duration(milliseconds: 500),
-            );
+            await Future<void>.delayed(const Duration(milliseconds: 500));
           },
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -150,26 +155,17 @@ class _DriverDashboardState extends State<DriverDashboard> {
 
               Text(
                 'Hello, $firstName 👋',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
 
               const SizedBox(height: 8),
 
               Text(
                 'What do you need help with today?',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
-                    ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -177,30 +173,23 @@ class _DriverDashboardState extends State<DriverDashboard> {
               // =========================
               // EMERGENCY ASSISTANCE CARD
               // =========================
-
               Card(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer,
+                color: Theme.of(context).colorScheme.primaryContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           CircleAvatar(
                             radius: 25,
-                            backgroundColor:
-                                Theme.of(context)
-                                    .colorScheme
-                                    .primary,
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary,
                             child: Icon(
                               Icons.car_repair_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               size: 28,
                             ),
                           ),
@@ -208,13 +197,8 @@ class _DriverDashboardState extends State<DriverDashboard> {
                           Expanded(
                             child: Text(
                               'Need roadside assistance?',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight:
-                                        FontWeight.w800,
-                                  ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                           ),
                         ],
@@ -224,9 +208,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
 
                       Text(
                         'Share your vehicle problem and location to find suitable nearby assistance.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium,
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
 
                       const SizedBox(height: 18),
@@ -237,17 +219,12 @@ class _DriverDashboardState extends State<DriverDashboard> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    const MechanicMatchScreen(),
+                                builder: (_) => const MechanicMatchScreen(),
                               ),
                             );
                           },
-                          icon: const Icon(
-                            Icons.location_on_rounded,
-                          ),
-                          label: const Text(
-                            'Find Assistance',
-                          ),
+                          icon: const Icon(Icons.location_on_rounded),
+                          label: const Text('Find Assistance'),
                         ),
                       ),
                     ],
@@ -260,15 +237,10 @@ class _DriverDashboardState extends State<DriverDashboard> {
               // =========================
               // QUICK ACTIONS
               // =========================
-
               Text(
                 'Quick Services',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
 
               const SizedBox(height: 14),
@@ -278,8 +250,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 childAspectRatio: 1.15,
                 children: [
                   _ServiceCard(
@@ -289,8 +260,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const AiDiagnosisScreen(),
+                          builder: (_) => const AiDiagnosisScreen(),
                         ),
                       );
                     },
@@ -303,8 +273,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const MechanicMatchScreen(),
+                          builder: (_) => const MechanicMatchScreen(),
                         ),
                       );
                     },
@@ -317,8 +286,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const RequestTrackingScreen(),
+                          builder: (_) => const RequestTrackingScreen(),
                         ),
                       );
                     },
@@ -340,7 +308,6 @@ class _DriverDashboardState extends State<DriverDashboard> {
               // =========================
               // ACCOUNT INFORMATION
               // =========================
-
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
@@ -352,9 +319,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                           firstName.isNotEmpty
                               ? firstName[0].toUpperCase()
                               : 'D',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
 
@@ -362,25 +327,17 @@ class _DriverDashboardState extends State<DriverDashboard> {
 
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               user?.fullName ?? 'Driver',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight:
-                                        FontWeight.w700,
-                                  ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 3),
                             Text(
                               user?.email ?? '',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(context)
                                         .colorScheme
@@ -391,9 +348,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                         ),
                       ),
 
-                      const Icon(
-                        Icons.verified_user_outlined,
-                      ),
+                      const Icon(Icons.verified_user_outlined),
                     ],
                   ),
                 ),
@@ -430,27 +385,20 @@ class _ServiceCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 icon,
                 size: 30,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
 
               const Spacer(),
 
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
 
               const SizedBox(height: 4),
@@ -459,14 +407,9 @@ class _ServiceCard extends StatelessWidget {
                 subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
-                    ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

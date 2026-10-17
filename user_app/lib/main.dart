@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +8,7 @@ import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/driver/ai_diagnosis_screen.dart';
 import 'screens/driver/mechanic_match_screen.dart';
+import 'screens/driver/request_tracking_screen.dart';
 
 void main() {
   runApp(
@@ -36,6 +38,8 @@ class VehicleUserApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
       routes: {
+        // Do not add '/' here because home defines the initial screen.
+        '/login': (_) => const LoginScreen(),
         '/premium': (_) => const PremiumHomeScreen(),
       },
       home: const LoginScreen(),
@@ -51,6 +55,23 @@ class PremiumHomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('VehicleAssist'),
+        actions: [
+          IconButton(
+            tooltip: 'Reload Home',
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Home screen refreshed'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -77,7 +98,7 @@ class PremiumHomeScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 _buildQuickActions(context, theme),
                 const SizedBox(height: 22),
-                _buildEmergencyCard(theme),
+                _buildEmergencyCard(context, theme),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Your vehicle', 'Manage'),
                 const SizedBox(height: 12),
@@ -93,6 +114,27 @@ class PremiumHomeScreen extends StatelessWidget {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AiDiagnosisScreen(),
+              ),
+            );
+          } else if (index == 2) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const RequestTrackingScreen(),
+              ),
+            );
+          } else if (index == 3) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const DriverProfileScreen(),
+              ),
+            );
+          }
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -209,10 +251,7 @@ class PremiumHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAiCard(
-    BuildContext context,
-    ThemeData theme,
-  ) {
+  Widget _buildAiCard(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -282,12 +321,8 @@ class PremiumHomeScreen extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(
-                Icons.chat_bubble_outline_rounded,
-              ),
-              label: const Text(
-                'Talk to AI Assistant',
-              ),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              label: const Text('Talk to AI Assistant'),
             ),
           ),
         ],
@@ -295,10 +330,7 @@ class PremiumHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(
-    BuildContext context,
-    ThemeData theme,
-  ) {
+  Widget _buildQuickActions(BuildContext context, ThemeData theme) {
     return Row(
       children: [
         Expanded(
@@ -387,7 +419,7 @@ class PremiumHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmergencyCard(ThemeData theme) {
+  Widget _buildEmergencyCard(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
@@ -434,7 +466,13 @@ class PremiumHomeScreen extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const MechanicMatchScreen(),
+                ),
+              );
+            },
             icon: const Icon(
               Icons.arrow_forward_rounded,
               color: Color(0xFFFF6E7F),
@@ -445,10 +483,7 @@ class PremiumHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(
-    String title,
-    String action,
-  ) {
+  Widget _buildSectionTitle(String title, String action) {
     return Row(
       children: [
         Expanded(
@@ -576,6 +611,143 @@ class PremiumHomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Basic driver profile screen. This intentionally does not log the user out
+/// or redirect to the login screen.
+class DriverProfileScreen extends StatelessWidget {
+  const DriverProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = context.watch<AuthProvider>().user;
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('My Profile')),
+        body: const Center(
+          child: Text('Please sign in to view your profile.'),
+        ),
+      );
+    }
+
+    Widget detailRow(IconData icon, String label, String value) {
+      return ListTile(
+        leading: Icon(icon),
+        title: Text(label, style: theme.textTheme.bodySmall),
+        subtitle: Text(value, style: theme.textTheme.titleMedium),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const SizedBox(height: 20),
+          const Center(
+            child: CircleAvatar(
+              radius: 44,
+              child: Icon(Icons.person, size: 48),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              user.fullName,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: Column(
+              children: [
+                detailRow(Icons.badge_outlined, 'Driver ID', user.id.toString()),
+                const Divider(height: 1),
+                detailRow(Icons.person_outline, 'Full Name', user.fullName),
+                const Divider(height: 1),
+                detailRow(Icons.email_outlined, 'Email', user.email),
+                const Divider(height: 1),
+                detailRow(Icons.manage_accounts_outlined, 'Role', user.role),
+                const Divider(height: 1),
+                detailRow(
+                  Icons.verified_user_outlined,
+                  'Account Status',
+                  user.isActive ? 'Active' : 'Inactive',
+                ),
+                const Divider(height: 1),
+                detailRow(
+                  Icons.calendar_today_outlined,
+                  'Registered On',
+                  '${user.createdAt.day.toString().padLeft(2, '0')}/'
+                  '${user.createdAt.month.toString().padLeft(2, '0')}/'
+                  '${user.createdAt.year}',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () async {
+                final shouldSignOut = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Sign out?'),
+                    content: const Text(
+                      'Are you sure you want to sign out of your driver account?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Sign Out'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (shouldSignOut != true || !context.mounted) return;
+
+                try {
+                  await context.read<AuthProvider>().logout();
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Sign out failed: $e')),
+                    );
+                  }
+                  return;
+                }
+
+                if (!context.mounted) return;
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
+                );
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign Out'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back to Home'),
           ),
         ],
       ),

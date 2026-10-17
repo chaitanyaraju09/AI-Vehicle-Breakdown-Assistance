@@ -1,12 +1,19 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+import logging
 from math import radians, sin, cos, sqrt, atan2
 from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.config import settings
 
 from app.database import engine, Base, get_db
 from app.models import User, DTC, Mechanic, AssistanceRequest
@@ -50,6 +57,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
+logger = logging.getLogger("vehicle_assistance")
+
 # ============================================================
 # FASTAPI APP
 # ============================================================
@@ -64,10 +73,82 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ============================================================
+# CORS CONFIGURATION
+# ============================================================
+
+cors_origins = settings.cors_origins_list
+allow_all = "*" in cors_origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if allow_all else cors_origins,
+    allow_credentials=not allow_all,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ============================================================
-# ROOT
+# CENTRALIZED ERROR HANDLING
 # ============================================================
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": True,
+            "status_code": exc.status_code,
+            "detail": exc.detail,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    errors = exc.errors()
+    first_msg = (
+        errors[0].get("msg", "Validation error")
+        if errors
+        else "Invalid request data"
+    )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": True,
+            "status_code": 422,
+            "detail": first_msg,
+            "errors": errors,
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request, exc: Exception):
+    logger.exception(f"Unhandled server error on {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": True,
+            "status_code": 500,
+            "detail": "An unexpected server error occurred. Please try again.",
+        },
+    )
+
+
+# ============================================================
+# HEALTH & ROOT
+# ============================================================
+
+@app.get("/health", tags=["System"])
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "Vehicle Assistance API",
+        "environment": settings.ENVIRONMENT,
+        "version": "1.0.0",
+    }
+
 
 @app.get("/")
 async def root():
@@ -1264,6 +1345,25 @@ async def create_assistance_request(
         require_role("DRIVER")
     ),
 ):
+    # Do not create another request while this driver has an active one.
+    active_request = await db.scalar(
+        select(AssistanceRequest).where(
+            AssistanceRequest.driver_user_id == current_user.id,
+            AssistanceRequest.status.in_(
+                ["PENDING", "ACCEPTED", "IN_PROGRESS"]
+            ),
+        )
+    )
+
+    if active_request:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "You already have an active assistance request. "
+                "Please wait until it is completed before creating "
+                "another request."
+            ),
+        )
 
     request = AssistanceRequest(
         driver_user_id=current_user.id,
@@ -1279,7 +1379,6 @@ async def create_assistance_request(
     )
 
     db.add(request)
-
     await db.commit()
     await db.refresh(request)
 

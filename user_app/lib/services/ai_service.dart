@@ -1,8 +1,11 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
+import '../core/config/app_config.dart';
+
 class AiService {
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = AppConfig.apiBaseUrl;
 
   Future<Map<String, dynamic>> diagnoseSymptoms({
     required String symptomDescription,
@@ -32,9 +35,7 @@ class AiService {
             'AI diagnosis failed with status ${response.statusCode}',
       );
     } catch (_) {
-      throw Exception(
-        'AI diagnosis failed with status ${response.statusCode}',
-      );
+      throw Exception('AI diagnosis failed with status ${response.statusCode}');
     }
   }
 }
