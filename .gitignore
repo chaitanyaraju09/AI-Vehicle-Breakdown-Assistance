@@ -42,3 +42,14 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local backup files
+*.backup
+*.backup-*
+*.before-reload
+*.before-reload-fix
+*.before-reload-session-fix
+*.before-signout-reload
+
+# Dashboard backup file
+mechanic_app/lib/screens/dashboard/mechanic_dashboard_shell.backup.dart
